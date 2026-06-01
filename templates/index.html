@@ -45,7 +45,10 @@
 
         <!-- TABEL MENU DARI GOOGLE SHEETS -->
         <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-dark text-white fw-bold">📋 Menu Hari Ini</div>
+            <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+                <span>📋 Menu Hari Ini</span>
+                <small class="text-white-50 fw-normal" id="timestampMenu"></small>
+            </div>
             <div class="card-body p-0">
                 <table class="table table-striped mb-0 align-middle">
                     <thead class="table-light">
@@ -144,6 +147,20 @@
 
     <!-- SCRIPT LOGIC FRONTEND INTERAKTIF -->
     <script>
+        // 0. Tampilkan timestamp WIB di header menu
+        (function() {
+            const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+            const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+            const now = new Date();
+            const namaHari = hari[now.getDay()];
+            const tgl = now.getDate();
+            const bln = bulan[now.getMonth()];
+            const thn = now.getFullYear();
+            const jam = String(now.getHours()).padStart(2,'0');
+            const menit = String(now.getMinutes()).padStart(2,'0');
+            document.getElementById('timestampMenu').innerText = `${namaHari}, ${tgl} ${bln} ${thn} • ${jam}:${menit} WIB`;
+        })();
+
         // 1. Fungsi menambah atau mengurangi kuantitas porsi
         function ubahQty(button, delta) {
             const input = button.parentElement.querySelector('.qty-input');
