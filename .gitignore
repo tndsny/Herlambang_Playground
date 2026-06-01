@@ -48,4 +48,5 @@ Thumbs.db
 # ===== ENV VARIABLES =====
 .env
 .env.local
-.env.production
+.env.productiontemp/
+requirements_local.txt
