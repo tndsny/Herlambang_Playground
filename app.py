@@ -140,9 +140,15 @@ def index():
 @app.route('/pesan', methods=['POST'])
 def simpan_pesanan():
     try:
-        nama = request.form.get('nama')
-        item = request.form.get('item')
+        nama = request.form.get('nama', '').strip()
+        item = request.form.get('item', '').strip()
         jumlah = request.form.get('jumlah')
+        
+        if not nama:
+            return jsonify({"status": "error", "message": "Nama tidak boleh kosong!"})
+        if not item:
+            return jsonify({"status": "error", "message": "Pesanan tidak boleh kosong!"})
+            
         waktu_sekarang = datetime.datetime.now(WIB).strftime("%Y-%m-%d %H:%M:%S")
         
         client = get_sheets_client()

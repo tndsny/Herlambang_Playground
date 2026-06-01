@@ -238,6 +238,11 @@
                 }
             });
 
+            if (!namaInput) {
+                alert("Gagal mengirim! Nama tidak boleh kosong.");
+                return;
+            }
+
             if (arrayTeksPesanan.length === 0) {
                 alert("Gagal mengirim! Silakan pilih minimal 1 item menu dengan menekan tombol (+) di atas.");
                 return;
