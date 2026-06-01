@@ -209,13 +209,20 @@
 
         // 3. Intersepsi submit form dengan konfirmasi (Yes/No)
         const tombolKirim = document.querySelector('#formPesanan button[type="submit"]');
+        let isSubmitting = false;
+
+        function resetTombol() {
+            isSubmitting = false;
+            tombolKirim.disabled = false;
+            tombolKirim.innerText = 'Kirim Pesanan';
+        }
         
         document.getElementById('formPesanan').addEventListener('submit', function(e) {
             e.preventDefault();
 
-            // Cegah double submit — jika tombol sudah disabled, langsung stop
-            if (tombolKirim.disabled) return;
-            
+            // Hard block — tolak semua submission selama proses berjalan
+            if (isSubmitting) return;
+
             const namaInput = document.getElementById('nama').value.trim();
             const rows = document.querySelectorAll('.menu-row');
             
@@ -225,14 +232,12 @@
             rows.forEach(row => {
                 const namaMenu = row.getAttribute('data-nama');
                 const qty = parseInt(row.querySelector('.qty-input').value) || 0;
-                
                 if (qty > 0) {
                     arrayTeksPesanan.push(`${namaMenu} (${qty} porsi)`);
                     totalKuantitas += qty;
                 }
             });
 
-            // Validasi jika user menekan tombol kirim pesanan tapi kuantitas masih 0 semua
             if (arrayTeksPesanan.length === 0) {
                 alert("Gagal mengirim! Silakan pilih minimal 1 item menu dengan menekan tombol (+) di atas.");
                 return;
@@ -240,11 +245,11 @@
 
             const gabunganItemTeks = arrayTeksPesanan.join(', ');
 
-            // Disable tombol sebelum confirm box muncul
+            // Kunci form sebelum confirm box muncul
+            isSubmitting = true;
             tombolKirim.disabled = true;
             tombolKirim.innerText = 'Memproses...';
 
-            // POP-UP PERSETUJUAN YES / NO (Confirm Box bawaan browser)
             const konfirmasiCatering = confirm(
                 `Konfirmasi Pesanan Baru:\n\n` +
                 `Pelanggan: ${namaInput}\n` +
@@ -252,20 +257,16 @@
                 `Apakah rincian pesanan Linda Catering ini sudah sesuai dan ingin langsung dikirim?`
             );
 
-            // Jika user memilih Cancel / No, kembalikan tombol dan hentikan
             if (!konfirmasiCatering) {
-                tombolKirim.disabled = false;
-                tombolKirim.innerText = 'Kirim Pesanan';
+                resetTombol();
                 return; 
             }
             
-            // Bungkus data ke dalam FormData untuk ditembakkan ke backend
             const payload = new FormData();
             payload.append('nama', namaInput);
             payload.append('item', gabunganItemTeks);
             payload.append('jumlah', totalKuantitas);
             
-            // Kirim data pesanan via AJAX POST
             fetch('/pesan', {
                 method: 'POST',
                 body: payload
@@ -273,8 +274,7 @@
             .then(response => response.json())
             .then(data => {
                 alert(data.message);
-                if(data.status === 'success') {
-                    // Reset form
+                if (data.status === 'success') {
                     document.getElementById('formPesanan').reset();
                     document.querySelectorAll('.qty-input').forEach(input => input.value = 0);
                     hitungSummaryPesanan();
@@ -285,9 +285,7 @@
                 console.error(error);
             })
             .finally(() => {
-                // Selalu kembalikan tombol setelah selesai (sukses maupun error)
-                tombolKirim.disabled = false;
-                tombolKirim.innerText = 'Kirim Pesanan';
+                resetTombol();
             });
         });
     </script>
