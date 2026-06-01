@@ -114,6 +114,10 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
     return rekomendasi_teks
 
 
+@app.route('/ping')
+def ping():
+    return "pong", 200
+
 @app.route('/')
 def index():
     try:
