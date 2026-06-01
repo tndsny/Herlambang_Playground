@@ -111,6 +111,26 @@
             </div>
         </div>
 
+        <!-- SECTION QRIS PAYMENT -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-danger text-white fw-bold">
+                💳 Pembayaran QRIS
+            </div>
+            <div class="card-body text-center">
+                <p class="text-muted mb-3">Scan atau download QR Code di bawah untuk pembayaran via GoPay, OVO, Dana, ShopeePay, dan semua aplikasi QRIS.</p>
+                <img src="{{ url_for('static', filename='qris-linda-catering.jpg') }}" 
+                     alt="QRIS Linda Catering" 
+                     class="img-fluid rounded border mb-3"
+                     style="max-width: 280px;">
+                <br>
+                <a href="{{ url_for('static', filename='qris-linda-catering.jpg') }}" 
+                   download="QRIS-Linda-Catering.jpg"
+                   class="btn btn-danger fw-semibold px-4">
+                    ⬇️ Download QR Payment
+                </a>
+            </div>
+        </div>
+
         <!-- FOOTER & CUSTOMER SERVICE INFO -->
         <div class="text-center py-3 border-top mt-5">
             <p class="text-muted mb-1 text-sm">Butuh bantuan atau kustomisasi pesanan besar?</p>
