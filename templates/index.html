@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warung Digital</title>
+    <!-- Menggunakan Bootstrap agar tampilan langsung rapi dan responsif di HP -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons untuk logo WhatsApp -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        /* Mengatur tampilan input agar tidak merusak baris tabel */
+        .qty-input {
+            width: 45px;
+            text-align: center;
+            font-weight: bold;
+            border: none;
+            background: transparent;
+        }
+        /* Menghilangkan spin button bawaan browser pada input number */
+        .qty-input::-webkit-outer-spin-button,
+        .qty-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <div class="container py-5" style="max-width: 650px;">
+        <div class="text-center mb-4">
+            <h1 class="fw-bold text-success">🏪 Linda Catering</h1>
+            <p class="text-muted">Pesan menu harianmu dengan mudah dan cepat</p>
+        </div>
+
+        <!-- BOX REKOMENDASI GEMINI AI -->
+        <div class="card border-success mb-4 shadow-sm">
+            <div class="card-header bg-success text-white fw-bold">
+                ✨ Rekomendasi Hari Ini
+            </div>
+            <div class="card-body">
+                <p class="card-text fst-italic">"{{ ai_suggestion }}"</p>
+            </div>
+        </div>
+
+        <!-- TABEL MENU DARI GOOGLE SHEETS -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+                <span>📋 Menu Hari Ini</span>
+                <small class="text-white-50 fw-normal" id="timestampMenu"></small>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nama Menu</th>
+                            <th>Kategori</th>
+                            <th>Harga</th>
+                            <th class="text-center" style="width: 130px;">Porsi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in menu %}
+                        <tr class="menu-row" data-nama="{{ item.nama }}" data-harga="{{ item.harga }}">
+                            <td><strong>{{ item.nama }}</strong></td>
+                            <td><span class="badge bg-secondary">{{ item.kategori }}</span></td>
+                            <td>Rp {{ "{:,}".format(item.harga) }}</td>
+                            <td>
+                                <!-- Tombol Plus Minus untuk mengatur kuantitas porsi -->
+                                <div class="d-flex align-items-center justify-content-center gap-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-2 py-0" onclick="ubahQty(this, -1)">-</button>
+                                    <input type="number" class="qty-input mx-1" value="0" min="0" readonly>
+                                    <button type="button" class="btn btn-sm btn-success fw-bold px-2 py-0" onclick="ubahQty(this, 1)">+</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-3">Belum ada data menu di Google Sheets.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FORMULIR PESANAN -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white fw-bold">🛒 Kirim Pesanan</div>
+            <div class="card-body">
+                <form id="formPesanan">
+                    <!-- Input Nama -->
+                    <div class="mb-3">
+                        <label for="nama" class="form-label fw-semibold">Nama Kamu</label>
+                        <input type="text" class="form-control" id="nama" name="nama" placeholder="Masukkan nama kamu" required>
+                    </div>
+
+                    <!-- Ringkasan Item yang Terpilih Otomatis -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Item yang Dipesan</label>
+                        <div id="summaryPesanan" class="p-3 bg-light rounded border text-muted fst-italic text-sm">
+                            Belum ada menu yang dipilih. Silakan tentukan porsi pada tabel di atas.
+                        </div>
+                    </div>
+
+                    <!-- Live Hitung Estimasi Total -->
+                    <div class="d-flex justify-content-between align-items-center mb-4 pt-2 border-top">
+                        <span class="text-secondary font-medium">Estimasi Total:</span>
+                        <span id="totalHargaDisplay" class="fs-5 fw-bold text-dark">Rp 0</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Kirim Pesanan</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- SECTION QRIS PAYMENT -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-danger text-white fw-bold">
+                💳 Pembayaran QRIS
+            </div>
+            <div class="card-body text-center">
+                <p class="text-muted mb-3">Scan atau download QR Code di bawah untuk pembayaran via GoPay, OVO, Dana, ShopeePay, dan semua aplikasi QRIS.</p>
+                <img src="{{ url_for('static', filename='qris-linda-catering.jpg') }}" 
+                     alt="QRIS Linda Catering" 
+                     class="img-fluid rounded border mb-3"
+                     style="max-width: 280px;">
+                <br>
+                <a href="{{ url_for('static', filename='qris-linda-catering.jpg') }}" 
+                   download="QRIS-Linda-Catering.jpg"
+                   class="btn btn-danger fw-semibold px-4">
+                    ⬇️ Download QR Payment
+                </a>
+            </div>
+        </div>
+
+        <!-- FOOTER & CUSTOMER SERVICE INFO -->
+        <div class="text-center py-3 border-top mt-5">
+            <p class="text-muted mb-1 text-sm">Butuh bantuan atau kustomisasi pesanan besar?</p>
+            <a href="https://wa.me/628571931120?text=Halo%20Linda%20Catering,%20saya%20mau%20tanya%20terkait%20pesanan..." 
+               target="_blank" 
+               class="btn btn-sm btn-outline-success fw-semibold px-3 py-1.5 rounded-pill">
+                <i class="bi bi-whatsapp me-1"></i> CS WhatsApp: 08571931120 (Herlambang)
+            </a>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIC FRONTEND INTERAKTIF -->
+    <script>
+        // 0. Tampilkan timestamp WIB di header menu
+        (function() {
+            const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+            const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+            const now = new Date();
+            const namaHari = hari[now.getDay()];
+            const tgl = now.getDate();
+            const bln = bulan[now.getMonth()];
+            const thn = now.getFullYear();
+            const jam = String(now.getHours()).padStart(2,'0');
+            const menit = String(now.getMinutes()).padStart(2,'0');
+            document.getElementById('timestampMenu').innerText = `${namaHari}, ${tgl} ${bln} ${thn} • ${jam}:${menit} WIB`;
+        })();
+
+        // 1. Fungsi menambah atau mengurangi kuantitas porsi
+        function ubahQty(button, delta) {
+            const input = button.parentElement.querySelector('.qty-input');
+            let value = parseInt(input.value) || 0;
+            value += delta;
+            if (value < 0) value = 0;
+            input.value = value;
+            
+            // Jalankan kalkulasi summary setiap kali ada perubahan porsi
+            hitungSummaryPesanan();
+        }
+
+        // 2. Fungsi memetakan item terpilih dan menjumlahkan total harga
+        function hitungSummaryPesanan() {
+            const rows = document.querySelectorAll('.menu-row');
+            let listPesananHTML = [];
+            let totalBiaya = 0;
+
+            rows.forEach(row => {
+                const namaMenu = row.getAttribute('data-nama');
+                const hargaMenu = parseInt(row.getAttribute('data-harga')) || 0;
+                const qty = parseInt(row.querySelector('.qty-input').value) || 0;
+
+                if (qty > 0) {
+                    totalBiaya += (hargaMenu * qty);
+                    listPesananHTML.push(`<li><strong>${namaMenu}</strong> (${qty}x)</li>`);
+                }
+            });
+
+            const summaryBox = document.getElementById('summaryPesanan');
+            
+            // Tampilkan summary atau kembalikan ke teks default jika kosong
+            if (listPesananHTML.length > 0) {
+                summaryBox.innerHTML = `<ul class="mb-0 ps-3">${listPesananHTML.join('')}</ul>`;
+                summaryBox.classList.remove('text-muted', 'fst-italic');
+                summaryBox.classList.add('text-dark');
+            } else {
+                summaryBox.innerHTML = "Belum ada menu yang dipilih. Silakan tentukan porsi pada tabel di atas.";
+                summaryBox.classList.remove('text-dark');
+                summaryBox.classList.add('text-muted', 'fst-italic');
+            }
+
+            // Tampilkan live total harga berformat rupiah
+            document.getElementById('totalHargaDisplay').innerText = "Rp " + totalBiaya.toLocaleString('id-ID');
+        }
+
+        // 3. Intersepsi submit form dengan konfirmasi (Yes/No)
+        const tombolKirim = document.querySelector('#formPesanan button[type="submit"]');
+        let isSubmitting = false;
+
+        function resetTombol() {
+            isSubmitting = false;
+            tombolKirim.disabled = false;
+            tombolKirim.innerText = 'Kirim Pesanan';
+        }
+        
+        document.getElementById('formPesanan').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Hard block — tolak semua submission selama proses berjalan
+            if (isSubmitting) return;
+
+            const namaInput = document.getElementById('nama').value.trim();
+            const rows = document.querySelectorAll('.menu-row');
+            
+            let arrayTeksPesanan = [];
+            let totalKuantitas = 0;
+
+            rows.forEach(row => {
+                const namaMenu = row.getAttribute('data-nama');
+                const qty = parseInt(row.querySelector('.qty-input').value) || 0;
+                if (qty > 0) {
+                    arrayTeksPesanan.push(`${namaMenu} (${qty} porsi)`);
+                    totalKuantitas += qty;
+                }
+            });
+
+            if (arrayTeksPesanan.length === 0) {
+                alert("Gagal mengirim! Silakan pilih minimal 1 item menu dengan menekan tombol (+) di atas.");
+                return;
+            }
+
+            const gabunganItemTeks = arrayTeksPesanan.join(', ');
+
+            // Kunci form sebelum confirm box muncul
+            isSubmitting = true;
+            tombolKirim.disabled = true;
+            tombolKirim.innerText = 'Memproses...';
+
+            const konfirmasiCatering = confirm(
+                `Konfirmasi Pesanan Baru:\n\n` +
+                `Pelanggan: ${namaInput}\n` +
+                `Daftar Order: ${gabunganItemTeks}\n\n` +
+                `Apakah rincian pesanan Linda Catering ini sudah sesuai dan ingin langsung dikirim?`
+            );
+
+            if (!konfirmasiCatering) {
+                resetTombol();
+                return; 
+            }
+            
+            const payload = new FormData();
+            payload.append('nama', namaInput);
+            payload.append('item', gabunganItemTeks);
+            payload.append('jumlah', totalKuantitas);
+            
+            fetch('/pesan', {
+                method: 'POST',
+                body: payload
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.status === 'success') {
+                    document.getElementById('formPesanan').reset();
+                    document.querySelectorAll('.qty-input').forEach(input => input.value = 0);
+                    hitungSummaryPesanan();
+                }
+            })
+            .catch(error => {
+                alert('Terjadi kesalahan saat mengirim data ke server.');
+                console.error(error);
+            })
+            .finally(() => {
+                resetTombol();
+            });
+        });
+    </script>
+</body>
+</html>
