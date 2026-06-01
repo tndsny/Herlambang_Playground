@@ -191,8 +191,13 @@
         }
 
         // 3. Intersepsi submit form dengan konfirmasi (Yes/No)
+        const tombolKirim = document.querySelector('#formPesanan button[type="submit"]');
+        
         document.getElementById('formPesanan').addEventListener('submit', function(e) {
             e.preventDefault();
+
+            // Cegah double submit — jika tombol sudah disabled, langsung stop
+            if (tombolKirim.disabled) return;
             
             const namaInput = document.getElementById('nama').value.trim();
             const rows = document.querySelectorAll('.menu-row');
@@ -218,6 +223,10 @@
 
             const gabunganItemTeks = arrayTeksPesanan.join(', ');
 
+            // Disable tombol sebelum confirm box muncul
+            tombolKirim.disabled = true;
+            tombolKirim.innerText = 'Memproses...';
+
             // POP-UP PERSETUJUAN YES / NO (Confirm Box bawaan browser)
             const konfirmasiCatering = confirm(
                 `Konfirmasi Pesanan Baru:\n\n` +
@@ -226,8 +235,10 @@
                 `Apakah rincian pesanan Linda Catering ini sudah sesuai dan ingin langsung dikirim?`
             );
 
-            // Jika user memilih Cancel / No, hentikan eksekusi script
+            // Jika user memilih Cancel / No, kembalikan tombol dan hentikan
             if (!konfirmasiCatering) {
+                tombolKirim.disabled = false;
+                tombolKirim.innerText = 'Kirim Pesanan';
                 return; 
             }
             
@@ -246,7 +257,7 @@
             .then(data => {
                 alert(data.message);
                 if(data.status === 'success') {
-                    // Reset nama, ringkasan porsi kembali menjadi 0, dan total harga display
+                    // Reset form
                     document.getElementById('formPesanan').reset();
                     document.querySelectorAll('.qty-input').forEach(input => input.value = 0);
                     hitungSummaryPesanan();
@@ -255,6 +266,11 @@
             .catch(error => {
                 alert('Terjadi kesalahan saat mengirim data ke server.');
                 console.error(error);
+            })
+            .finally(() => {
+                // Selalu kembalikan tombol setelah selesai (sukses maupun error)
+                tombolKirim.disabled = false;
+                tombolKirim.innerText = 'Kirim Pesanan';
             });
         });
     </script>
