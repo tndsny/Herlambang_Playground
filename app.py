@@ -1,6 +1,9 @@
 import os
 import datetime
 import json
+import pytz
+
+WIB = pytz.timezone('Asia/Jakarta')
 from flask import Flask, render_template, request, jsonify
 import gspread
 from google.oauth2.service_account import Credentials
@@ -46,7 +49,7 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
     Fungsi pintar untuk mengontrol hit ke API Gemini hanya sekali dalam sehari.
     Siklus akan diperbarui (expired) setiap memasuki jam 7 pagi di hari baru.
     """
-    waktu_sekarang = datetime.datetime.now()
+    waktu_sekarang = datetime.datetime.now(WIB)
     
     target_jam_7_hari_ini = waktu_sekarang.replace(hour=7, minute=0, second=0, microsecond=0)
     
@@ -64,7 +67,7 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
             with open(CACHE_FILE, "r") as f:
                 data_cache = json.load(f)
                 
-            waktu_cache_dibuat = datetime.datetime.strptime(data_cache["timestamp"], "%Y-%m-%d %H:%M:%S")
+            waktu_cache_dibuat = WIB.localize(datetime.datetime.strptime(data_cache["timestamp"], "%Y-%m-%d %H:%M:%S"))
             
             if waktu_cache_dibuat >= waktu_mulai_berlaku:
                 cache_valid = True
@@ -136,7 +139,7 @@ def simpan_pesanan():
         nama = request.form.get('nama')
         item = request.form.get('item')
         jumlah = request.form.get('jumlah')
-        waktu_sekarang = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        waktu_sekarang = datetime.datetime.now(WIB).strftime("%Y-%m-%d %H:%M:%S")
         
         client = get_sheets_client()
         sheet = client.open("Data Warung Digital").worksheet("Pesanan")
