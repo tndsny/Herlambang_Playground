@@ -1,44 +1,43 @@
 import os
 import datetime
-import time
-import json  # Ditambahkan untuk menyimpan data cache ke file fisik (.json)
+import json
 from flask import Flask, render_template, request, jsonify
 import gspread
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-# Menggunakan SDK google-genai terbaru
-from google import genai 
+from google.oauth2.service_account import Credentials
+from google import genai
 
 app = Flask(__name__)
 
-# FILE DATA CACHE LOKAL (Agar data tidak hilang meski Flask di-restart)
+# FILE DATA CACHE LOKAL
 CACHE_FILE = "ai_cache_data.json"
 
-# 1. KONFIGURASI GOOGLE SHEETS API (OAUTH2)
+# 1. KONFIGURASI GOOGLE SHEETS API (SERVICE ACCOUNT)
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
 
 def get_sheets_client():
-    creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    """
+    Mendukung dua cara autentikasi:
+    - Di Render (production): baca dari environment variable GOOGLE_SERVICE_ACCOUNT_JSON
+    - Di lokal (development): baca dari file service_account.json
+    """
+    service_account_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
     
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-            
+    if service_account_json:
+        # Production: baca dari env variable (value-nya adalah string JSON)
+        service_account_info = json.loads(service_account_json)
+        creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+    else:
+        # Local development: baca dari file
+        creds = Credentials.from_service_account_file('service_account.json', scopes=SCOPES)
+    
     return gspread.authorize(creds)
 
-# 2. KONFIGURASI GEMINI AI SDK BARU
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AQ.Ab8RN6L7pagNp-NuKxL4USceNpyZeWL40sK1Au1f5o_LNQc8jQ")
+
+# 2. KONFIGURASI GEMINI AI SDK
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
 
@@ -49,11 +48,8 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
     """
     waktu_sekarang = datetime.datetime.now()
     
-    # Ambil titik target jam 7 pagi di hari yang berjalan sekarang
     target_jam_7_hari_ini = waktu_sekarang.replace(hour=7, minute=0, second=0, microsecond=0)
     
-    # Hitung batas minimal waktu berlaku cache untuk siklus hari ini:
-    # Jika saat ini BELUM jam 7 pagi, berarti masih ikut siklus rekomendasi jam 7 pagi KEMARIN.
     if waktu_sekarang < target_jam_7_hari_ini:
         waktu_mulai_berlaku = target_jam_7_hari_ini - datetime.timedelta(days=1)
     else:
@@ -62,7 +58,7 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
     cache_valid = False
     rekomendasi_teks = ""
     
-    # Skenario A: Coba cek file JSON lokal dulu
+    # Skenario A: Cek file JSON cache lokal dulu
     if os.path.exists(CACHE_FILE):
         try:
             with open(CACHE_FILE, "r") as f:
@@ -70,7 +66,6 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
                 
             waktu_cache_dibuat = datetime.datetime.strptime(data_cache["timestamp"], "%Y-%m-%d %H:%M:%S")
             
-            # Jika cache dibuat SETELAH 'waktu_mulai_berlaku', tandanya data masih valid & statis
             if waktu_cache_dibuat >= waktu_mulai_berlaku:
                 cache_valid = True
                 rekomendasi_teks = data_cache["rekomendasi"]
@@ -78,7 +73,7 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
         except Exception as cache_err:
             print(f"Gagal membaca cache lokal, terpaksa hit API ulang: {str(cache_err)}")
 
-    # Skenario B: Cache kedaluwarsa atau belum ada, saatnya tembak Gemini API sekali saja
+    # Skenario B: Cache kedaluwarsa atau belum ada
     if not cache_valid:
         print("--> [CACHE EXPIRED / MISS] Menembak API Gemini untuk siklus hari baru...")
         try:
@@ -101,7 +96,7 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
             )
             rekomendasi_teks = response.text
             
-            # Amankan hasil rekomendasi baru ke file JSON fisik
+            # Simpan hasil ke cache
             data_baru_cache = {
                 "timestamp": waktu_sekarang.strftime("%Y-%m-%d %H:%M:%S"),
                 "rekomendasi": rekomendasi_teks
@@ -111,7 +106,6 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
                 
         except Exception as ai_err:
             print(f"Gemini API Error (Menggunakan Fallback Default): {str(ai_err)}")
-            # Fallback teks bawaan jika sewaktu-waktu Google API mengalami gangguan/limit
             rekomendasi_teks = "Halo Kak! Nikmati pilihan menu katering terbaik kami hari ini yang dibuat dengan bahan segar dan higienis. Padukan cemilan favoritmu dengan menu utama pilihan untuk penambah semangat!"
 
     return rekomendasi_teks
@@ -123,14 +117,12 @@ def index():
         client = get_sheets_client()
         sheet = client.open("Data Warung Digital")
         
-        # Tarik Data Menu Hari Ini
         menu_sheet = sheet.worksheet("Menu")
         daftar_menu = menu_sheet.get_all_records()
         
         rekomendasi_ai = "Belum ada rekomendasi menu untuk saat ini."
         
         if daftar_menu:
-            # Menggunakan logika pembatasan jam 7 pagi
             rekomendasi_ai = dapatkan_rekomendasi_cache_atau_api(daftar_menu)
 
         return render_template('index.html', menu=daftar_menu, ai_suggestion=rekomendasi_ai)

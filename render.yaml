@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: linda-catering
+    runtime: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false  # Akan diisi manual di Render Dashboard
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false  # Akan diisi manual di Render Dashboard
