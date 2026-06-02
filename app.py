@@ -118,10 +118,18 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
 
     return rekomendasi_teks
 
-
+# Endpoint sederhana untuk cek apakah server berjalan dengan baik
 @app.route('/ping')
 def ping():
     return "pong", 200
+
+# untuk render halaman utama dengan rekomendasi AI yang di-cache, dan untuk endpoint API menyimpan pesanan ke Google Sheets
+@app.route('/refresh-cache')
+def refresh_cache():
+    if os.path.exists(CACHE_FILE):
+        os.remove(CACHE_FILE)
+        return "Cache dihapus! Reload halaman utama untuk dapat rekomendasi baru.", 200
+    return "Cache tidak ditemukan.", 200
 
 @app.route('/')
 def index():
