@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warung Digital</title>
-    <!-- Menggunakan Bootstrap agar tampilan langsung rapi dan responsif di HP -->
+    <title>Linda Catering</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons untuk logo WhatsApp -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        /* Mengatur tampilan input agar tidak merusak baris tabel */
         .qty-input {
             width: 45px;
             text-align: center;
@@ -17,7 +14,6 @@
             border: none;
             background: transparent;
         }
-        /* Menghilangkan spin button bawaan browser pada input number */
         .qty-input::-webkit-outer-spin-button,
         .qty-input::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -39,7 +35,7 @@
                 ✨ Rekomendasi Hari Ini
             </div>
             <div class="card-body">
-                <p class="card-text fst-italic">"{{ ai_suggestion }}"</p>
+                <p class="card-text fst-italic" id="aiSuggestionText"></p>
             </div>
         </div>
 
@@ -66,7 +62,6 @@
                             <td><span class="badge bg-secondary">{{ item.kategori }}</span></td>
                             <td>Rp {{ "{:,}".format(item.harga) }}</td>
                             <td>
-                                <!-- Tombol Plus Minus untuk mengatur kuantitas porsi -->
                                 <div class="d-flex align-items-center justify-content-center gap-1">
                                     <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-2 py-0" onclick="ubahQty(this, -1)">-</button>
                                     <input type="number" class="qty-input mx-1" value="0" min="0" readonly>
@@ -89,13 +84,12 @@
             <div class="card-header bg-primary text-white fw-bold">🛒 Kirim Pesanan</div>
             <div class="card-body">
                 <form id="formPesanan">
-                    <!-- Input Nama -->
                     <div class="mb-3">
                         <label for="nama" class="form-label fw-semibold">Nama Kamu</label>
                         <input type="text" class="form-control" id="nama" name="nama" placeholder="Masukkan nama kamu" required>
+                        <div class="form-text text-muted">Hanya huruf, spasi, tanda petik ('), titik (.), atau strip (-). Min. 2 karakter.</div>
                     </div>
 
-                    <!-- Ringkasan Item yang Terpilih Otomatis -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Item yang Dipesan</label>
                         <div id="summaryPesanan" class="p-3 bg-light rounded border text-muted fst-italic text-sm">
@@ -103,7 +97,6 @@
                         </div>
                     </div>
 
-                    <!-- Live Hitung Estimasi Total -->
                     <div class="d-flex justify-content-between align-items-center mb-4 pt-2 border-top">
                         <span class="text-secondary font-medium">Estimasi Total:</span>
                         <span id="totalHargaDisplay" class="fs-5 fw-bold text-dark">Rp 0</span>
@@ -134,7 +127,7 @@
             </div>
         </div>
 
-        <!-- FOOTER & CUSTOMER SERVICE INFO -->
+        <!-- FOOTER -->
         <div class="text-center py-3 border-top mt-5">
             <p class="text-muted mb-1 text-sm">Butuh bantuan atau kustomisasi pesanan besar?</p>
             <a href="https://wa.me/628571931120?text=Halo%20Linda%20Catering,%20saya%20mau%20tanya%20terkait%20pesanan..." 
@@ -145,69 +138,66 @@
         </div>
     </div>
 
-    <!-- SCRIPT LOGIC FRONTEND INTERAKTIF -->
     <script>
-        // 0. Tampilkan timestamp WIB di header menu
+        // 0. Render AI suggestion — bersihkan Markdown lalu tampilkan
+        (function() {
+            const raw = `{{ ai_suggestion | e }}`;
+            const cleaned = raw
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '$1')
+                .replace(/\n/g, '<br>');
+            document.getElementById('aiSuggestionText').innerHTML = '\u201C' + cleaned + '\u201D';
+        })();
+
+        // 1. Timestamp WIB
         (function() {
             const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
             const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
             const now = new Date();
-            const namaHari = hari[now.getDay()];
-            const tgl = now.getDate();
-            const bln = bulan[now.getMonth()];
-            const thn = now.getFullYear();
-            const jam = String(now.getHours()).padStart(2,'0');
-            const menit = String(now.getMinutes()).padStart(2,'0');
-            document.getElementById('timestampMenu').innerText = `${namaHari}, ${tgl} ${bln} ${thn} • ${jam}:${menit} WIB`;
+            document.getElementById('timestampMenu').innerText =
+                `${hari[now.getDay()]}, ${now.getDate()} ${bulan[now.getMonth()]} ${now.getFullYear()} • ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} WIB`;
         })();
 
-        // 1. Fungsi menambah atau mengurangi kuantitas porsi
+        // 2. Ubah quantity porsi
         function ubahQty(button, delta) {
             const input = button.parentElement.querySelector('.qty-input');
             let value = parseInt(input.value) || 0;
-            value += delta;
-            if (value < 0) value = 0;
+            value = Math.max(0, value + delta);
             input.value = value;
-            
-            // Jalankan kalkulasi summary setiap kali ada perubahan porsi
             hitungSummaryPesanan();
         }
 
-        // 2. Fungsi memetakan item terpilih dan menjumlahkan total harga
+        // 3. Hitung & tampilkan summary pesanan
         function hitungSummaryPesanan() {
             const rows = document.querySelectorAll('.menu-row');
-            let listPesananHTML = [];
-            let totalBiaya = 0;
+            let listHTML = [];
+            let total = 0;
 
             rows.forEach(row => {
-                const namaMenu = row.getAttribute('data-nama');
-                const hargaMenu = parseInt(row.getAttribute('data-harga')) || 0;
+                const nama = row.getAttribute('data-nama');
+                const harga = parseInt(row.getAttribute('data-harga')) || 0;
                 const qty = parseInt(row.querySelector('.qty-input').value) || 0;
-
                 if (qty > 0) {
-                    totalBiaya += (hargaMenu * qty);
-                    listPesananHTML.push(`<li><strong>${namaMenu}</strong> (${qty}x)</li>`);
+                    total += harga * qty;
+                    listHTML.push(`<li><strong>${nama}</strong> (${qty}x) — Rp ${(harga * qty).toLocaleString('id-ID')}</li>`);
                 }
             });
 
-            const summaryBox = document.getElementById('summaryPesanan');
-            
-            // Tampilkan summary atau kembalikan ke teks default jika kosong
-            if (listPesananHTML.length > 0) {
-                summaryBox.innerHTML = `<ul class="mb-0 ps-3">${listPesananHTML.join('')}</ul>`;
-                summaryBox.classList.remove('text-muted', 'fst-italic');
-                summaryBox.classList.add('text-dark');
+            const box = document.getElementById('summaryPesanan');
+            if (listHTML.length > 0) {
+                box.innerHTML = `<ul class="mb-0 ps-3">${listHTML.join('')}</ul>`;
+                box.classList.remove('text-muted', 'fst-italic');
+                box.classList.add('text-dark');
             } else {
-                summaryBox.innerHTML = "Belum ada menu yang dipilih. Silakan tentukan porsi pada tabel di atas.";
-                summaryBox.classList.remove('text-dark');
-                summaryBox.classList.add('text-muted', 'fst-italic');
+                box.innerHTML = 'Belum ada menu yang dipilih. Silakan tentukan porsi pada tabel di atas.';
+                box.classList.remove('text-dark');
+                box.classList.add('text-muted', 'fst-italic');
             }
 
-            // Tampilkan live total harga berformat rupiah
-            document.getElementById('totalHargaDisplay').innerText = "Rp " + totalBiaya.toLocaleString('id-ID');
+            document.getElementById('totalHargaDisplay').innerText = 'Rp ' + total.toLocaleString('id-ID');
         }
 
-        // 3. Intersepsi submit form dengan konfirmasi (Yes/No)
+        // 4. Submit form
         const tombolKirim = document.querySelector('#formPesanan button[type="submit"]');
         let isSubmitting = false;
 
@@ -216,93 +206,74 @@
             tombolKirim.disabled = false;
             tombolKirim.innerText = 'Kirim Pesanan';
         }
-        
+
         document.getElementById('formPesanan').addEventListener('submit', function(e) {
             e.preventDefault();
-
-            // Hard block — tolak semua submission selama proses berjalan
             if (isSubmitting) return;
 
             const namaInput = document.getElementById('nama').value.trim();
-            const rows = document.querySelectorAll('.menu-row');
-            
-            let arrayTeksPesanan = [];
-            let totalKuantitas = 0;
 
+            // Validasi nama
+            if (!namaInput) {
+                alert('Gagal mengirim! Nama tidak boleh kosong.');
+                return;
+            }
+            const regexNama = /^[a-zA-Z\s'.\-]{2,50}$/;
+            if (!regexNama.test(namaInput)) {
+                alert('Nama tidak valid!\n\n• Minimal 2 karakter\n• Maksimal 50 karakter\n• Hanya huruf, spasi, tanda petik (\'), titik (.), atau strip (-)');
+                return;
+            }
+            if (/\s{2,}/.test(namaInput)) {
+                alert('Nama tidak valid! Tidak boleh ada spasi berlebihan.');
+                return;
+            }
+
+            // Kumpulkan pesanan
+            const rows = document.querySelectorAll('.menu-row');
+            let arrayTeks = [];
+            let totalQty = 0;
             rows.forEach(row => {
-                const namaMenu = row.getAttribute('data-nama');
                 const qty = parseInt(row.querySelector('.qty-input').value) || 0;
                 if (qty > 0) {
-                    arrayTeksPesanan.push(`${namaMenu} (${qty} porsi)`);
-                    totalKuantitas += qty;
+                    arrayTeks.push(`${row.getAttribute('data-nama')} (${qty} porsi)`);
+                    totalQty += qty;
                 }
             });
 
-            if (!namaInput) {
-                alert("Gagal mengirim! Nama tidak boleh kosong.");
+            if (arrayTeks.length === 0) {
+                alert('Gagal mengirim! Silakan pilih minimal 1 item menu.');
                 return;
             }
 
-            const regexNama = /^[a-zA-Z\s'.\-]{2,50}$/;
-            if (!regexNama.test(namaInput)) {
-                alert("Nama tidak valid!\n\n• Minimal 2 karakter\n• Maksimal 50 karakter\n• Hanya huruf, spasi, tanda petik ('), titik (.), atau strip (-)");
-                return;
-            }
+            const gabungan = arrayTeks.join(', ');
 
-            if (/\s{2,}/.test(namaInput)) {
-                alert("Nama tidak valid! Tidak boleh ada spasi berlebihan.");
-                return;
-            }
-
-            if (arrayTeksPesanan.length === 0) {
-                alert("Gagal mengirim! Silakan pilih minimal 1 item menu dengan menekan tombol (+) di atas.");
-                return;
-            }
-
-            const gabunganItemTeks = arrayTeksPesanan.join(', ');
-
-            // Kunci form sebelum confirm box muncul
             isSubmitting = true;
             tombolKirim.disabled = true;
             tombolKirim.innerText = 'Memproses...';
 
-            const konfirmasiCatering = confirm(
-                `Konfirmasi Pesanan Baru:\n\n` +
-                `Pelanggan: ${namaInput}\n` +
-                `Daftar Order: ${gabunganItemTeks}\n\n` +
-                `Apakah rincian pesanan Linda Catering ini sudah sesuai dan ingin langsung dikirim?`
+            const konfirmasi = confirm(
+                `Konfirmasi Pesanan Baru:\n\nPelanggan: ${namaInput}\nDaftar Order: ${gabungan}\n\nApakah rincian pesanan Linda Catering ini sudah sesuai dan ingin langsung dikirim?`
             );
 
-            if (!konfirmasiCatering) {
-                resetTombol();
-                return; 
-            }
-            
+            if (!konfirmasi) { resetTombol(); return; }
+
             const payload = new FormData();
             payload.append('nama', namaInput);
-            payload.append('item', gabunganItemTeks);
-            payload.append('jumlah', totalKuantitas);
-            
-            fetch('/pesan', {
-                method: 'POST',
-                body: payload
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                if (data.status === 'success') {
-                    document.getElementById('formPesanan').reset();
-                    document.querySelectorAll('.qty-input').forEach(input => input.value = 0);
-                    hitungSummaryPesanan();
-                }
-            })
-            .catch(error => {
-                alert('Terjadi kesalahan saat mengirim data ke server.');
-                console.error(error);
-            })
-            .finally(() => {
-                resetTombol();
-            });
+            payload.append('item', gabungan);
+            payload.append('jumlah', totalQty);
+
+            fetch('/pesan', { method: 'POST', body: payload })
+                .then(r => r.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.status === 'success') {
+                        document.getElementById('formPesanan').reset();
+                        document.querySelectorAll('.qty-input').forEach(i => i.value = 0);
+                        hitungSummaryPesanan();
+                    }
+                })
+                .catch(() => alert('Terjadi kesalahan saat mengirim data ke server.'))
+                .finally(resetTombol);
         });
     </script>
 </body>
