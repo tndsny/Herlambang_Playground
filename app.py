@@ -2,6 +2,8 @@ import os
 import datetime
 import json
 import pytz
+from dotenv import load_dotenv
+load_dotenv()
 
 WIB = pytz.timezone('Asia/Jakarta')
 from flask import Flask, render_template, request, jsonify
