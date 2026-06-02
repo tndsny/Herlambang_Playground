@@ -243,6 +243,17 @@
                 return;
             }
 
+            const regexNama = /^[a-zA-Z\s'.\-]{2,50}$/;
+            if (!regexNama.test(namaInput)) {
+                alert("Nama tidak valid!\n\n• Minimal 2 karakter\n• Maksimal 50 karakter\n• Hanya huruf, spasi, tanda petik ('), titik (.), atau strip (-)");
+                return;
+            }
+
+            if (/\s{2,}/.test(namaInput)) {
+                alert("Nama tidak valid! Tidak boleh ada spasi berlebihan.");
+                return;
+            }
+
             if (arrayTeksPesanan.length === 0) {
                 alert("Gagal mengirim! Silakan pilih minimal 1 item menu dengan menekan tombol (+) di atas.");
                 return;
