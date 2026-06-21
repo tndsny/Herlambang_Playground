@@ -29,6 +29,19 @@
             <p class="text-muted">Pesan menu harianmu dengan mudah dan cepat</p>
         </div>
 
+        <!-- BANNER STATUS BUKA / TUTUP -->
+        {% if warung_buka %}
+        <div class="alert alert-success d-flex align-items-center fw-semibold shadow-sm" role="alert">
+            <i class="bi bi-shop-window me-2 fs-5"></i>
+            Warung BUKA — siap menerima pesananmu hari ini!
+        </div>
+        {% else %}
+        <div class="alert alert-secondary d-flex align-items-center fw-semibold shadow-sm" role="alert">
+            <i class="bi bi-door-closed me-2 fs-5"></i>
+            Warung sedang TUTUP. Sampai jumpa di hari berikutnya ya! 🙏
+        </div>
+        {% endif %}
+
         <!-- BOX REKOMENDASI GEMINI AI -->
         <div class="card border-success mb-4 shadow-sm">
             <div class="card-header bg-success text-white fw-bold">
@@ -39,7 +52,7 @@
             </div>
         </div>
 
-        <!-- TABEL MENU DARI GOOGLE SHEETS -->
+        <!-- TABEL MENU DARI GOOGLE SHEETS (DIKELOMPOKKAN PER KATEGORI) -->
         <div class="card mb-4 shadow-sm">
             <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
                 <span>📋 Menu Hari Ini</span>
@@ -50,30 +63,35 @@
                     <thead class="table-light">
                         <tr>
                             <th>Nama Menu</th>
-                            <th>Kategori</th>
                             <th>Harga</th>
                             <th class="text-center" style="width: 130px;">Porsi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in menu %}
-                        <tr class="menu-row" data-nama="{{ item.nama }}" data-harga="{{ item.harga }}">
-                            <td><strong>{{ item.nama }}</strong></td>
-                            <td><span class="badge bg-secondary">{{ item.kategori }}</span></td>
-                            <td>Rp {{ "{:,}".format(item.harga) }}</td>
-                            <td>
-                                <div class="d-flex align-items-center justify-content-center gap-1">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-2 py-0" onclick="ubahQty(this, -1)">-</button>
-                                    <input type="number" class="qty-input mx-1" value="0" min="0" readonly>
-                                    <button type="button" class="btn btn-sm btn-success fw-bold px-2 py-0" onclick="ubahQty(this, 1)">+</button>
-                                </div>
-                            </td>
-                        </tr>
+                        {% if menu_per_kategori %}
+                            {% for kategori, items in menu_per_kategori.items() %}
+                            <tr class="table-secondary">
+                                <td colspan="3" class="fw-bold text-uppercase small">{{ kategori }}</td>
+                            </tr>
+                                {% for item in items %}
+                                <tr class="menu-row" data-nama="{{ item.nama }}" data-harga="{{ item.harga }}">
+                                    <td><strong>{{ item.nama }}</strong></td>
+                                    <td>Rp {{ "{:,}".format(item.harga) }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-2 py-0" onclick="ubahQty(this, -1)" {% if not warung_buka %}disabled{% endif %}>-</button>
+                                            <input type="number" class="qty-input mx-1" value="0" min="0" readonly>
+                                            <button type="button" class="btn btn-sm btn-success fw-bold px-2 py-0" onclick="ubahQty(this, 1)" {% if not warung_buka %}disabled{% endif %}>+</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
                         {% else %}
                         <tr>
-                            <td colspan="4" class="text-center text-muted py-3">Belum ada data menu di Google Sheets.</td>
+                            <td colspan="3" class="text-center text-muted py-3">Belum ada data menu di Google Sheets.</td>
                         </tr>
-                        {% endfor %}
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -83,6 +101,11 @@
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-primary text-white fw-bold">🛒 Kirim Pesanan</div>
             <div class="card-body">
+                {% if not warung_buka %}
+                <div class="alert alert-warning mb-0 text-center fst-italic">
+                    Pemesanan dinonaktifkan karena warung sedang tutup.
+                </div>
+                {% else %}
                 <form id="formPesanan">
                     <div class="mb-3">
                         <label for="nama" class="form-label fw-semibold">Nama Kamu</label>
@@ -104,6 +127,7 @@
 
                     <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Kirim Pesanan</button>
                 </form>
+                {% endif %}
             </div>
         </div>
 
@@ -114,12 +138,12 @@
             </div>
             <div class="card-body text-center">
                 <p class="text-muted mb-3">Scan atau download QR Code di bawah untuk pembayaran via GoPay, OVO, Dana, ShopeePay, dan semua aplikasi QRIS.</p>
-                <img src="{{ url_for('static', filename='qris-linda-catering.jpg') }}" 
-                     alt="QRIS Linda Catering" 
+                <img src="{{ url_for('static', filename='qris-linda-catering.jpg') }}"
+                     alt="QRIS Linda Catering"
                      class="img-fluid rounded border mb-3"
                      style="max-width: 280px;">
                 <br>
-                <a href="{{ url_for('static', filename='qris-linda-catering.jpg') }}" 
+                <a href="{{ url_for('static', filename='qris-linda-catering.jpg') }}"
                    download="QRIS-Linda-Catering.jpg"
                    class="btn btn-danger fw-semibold px-4">
                     ⬇️ Download QR Payment
@@ -130,8 +154,8 @@
         <!-- FOOTER -->
         <div class="text-center py-3 border-top mt-5">
             <p class="text-muted mb-1 text-sm">Butuh bantuan atau kustomisasi pesanan besar?</p>
-            <a href="https://wa.me/628571931120?text=Halo%20Linda%20Catering,%20saya%20mau%20tanya%20terkait%20pesanan..." 
-               target="_blank" 
+            <a href="https://wa.me/628571931120?text=Halo%20Linda%20Catering,%20saya%20mau%20tanya%20terkait%20pesanan..."
+               target="_blank"
                class="btn btn-sm btn-outline-success fw-semibold px-3 py-1.5 rounded-pill">
                 <i class="bi bi-whatsapp me-1"></i> CS WhatsApp: 08571931120 (Herlambang)
             </a>
@@ -197,84 +221,85 @@
             document.getElementById('totalHargaDisplay').innerText = 'Rp ' + total.toLocaleString('id-ID');
         }
 
-        // 4. Submit form
-        const tombolKirim = document.querySelector('#formPesanan button[type="submit"]');
-        let isSubmitting = false;
+        // 4. Submit form (hanya aktif kalau warung buka)
+        const formPesanan = document.getElementById('formPesanan');
+        if (formPesanan) {
+            const tombolKirim = formPesanan.querySelector('button[type="submit"]');
+            let isSubmitting = false;
 
-        function resetTombol() {
-            isSubmitting = false;
-            tombolKirim.disabled = false;
-            tombolKirim.innerText = 'Kirim Pesanan';
-        }
-
-        document.getElementById('formPesanan').addEventListener('submit', function(e) {
-            e.preventDefault();
-            if (isSubmitting) return;
-
-            const namaInput = document.getElementById('nama').value.trim();
-
-            // Validasi nama
-            if (!namaInput) {
-                alert('Gagal mengirim! Nama tidak boleh kosong.');
-                return;
-            }
-            const regexNama = /^[a-zA-Z\s'.\-]{2,50}$/;
-            if (!regexNama.test(namaInput)) {
-                alert('Nama tidak valid!\n\n• Minimal 2 karakter\n• Maksimal 50 karakter\n• Hanya huruf, spasi, tanda petik (\'), titik (.), atau strip (-)');
-                return;
-            }
-            if (/\s{2,}/.test(namaInput)) {
-                alert('Nama tidak valid! Tidak boleh ada spasi berlebihan.');
-                return;
+            function resetTombol() {
+                isSubmitting = false;
+                tombolKirim.disabled = false;
+                tombolKirim.innerText = 'Kirim Pesanan';
             }
 
-            // Kumpulkan pesanan
-            const rows = document.querySelectorAll('.menu-row');
-            let arrayTeks = [];
-            let totalQty = 0;
-            rows.forEach(row => {
-                const qty = parseInt(row.querySelector('.qty-input').value) || 0;
-                if (qty > 0) {
-                    arrayTeks.push(`${row.getAttribute('data-nama')} (${qty} porsi)`);
-                    totalQty += qty;
+            formPesanan.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (isSubmitting) return;
+
+                const namaInput = document.getElementById('nama').value.trim();
+
+                if (!namaInput) {
+                    alert('Gagal mengirim! Nama tidak boleh kosong.');
+                    return;
                 }
-            });
+                const regexNama = /^[a-zA-Z\s'.\-]{2,50}$/;
+                if (!regexNama.test(namaInput)) {
+                    alert('Nama tidak valid!\n\n• Minimal 2 karakter\n• Maksimal 50 karakter\n• Hanya huruf, spasi, tanda petik (\'), titik (.), atau strip (-)');
+                    return;
+                }
+                if (/\s{2,}/.test(namaInput)) {
+                    alert('Nama tidak valid! Tidak boleh ada spasi berlebihan.');
+                    return;
+                }
 
-            if (arrayTeks.length === 0) {
-                alert('Gagal mengirim! Silakan pilih minimal 1 item menu.');
-                return;
-            }
-
-            const gabungan = arrayTeks.join(', ');
-
-            isSubmitting = true;
-            tombolKirim.disabled = true;
-            tombolKirim.innerText = 'Memproses...';
-
-            const konfirmasi = confirm(
-                `Konfirmasi Pesanan Baru:\n\nPelanggan: ${namaInput}\nDaftar Order: ${gabungan}\n\nApakah rincian pesanan Linda Catering ini sudah sesuai dan ingin langsung dikirim?`
-            );
-
-            if (!konfirmasi) { resetTombol(); return; }
-
-            const payload = new FormData();
-            payload.append('nama', namaInput);
-            payload.append('item', gabungan);
-            payload.append('jumlah', totalQty);
-
-            fetch('/pesan', { method: 'POST', body: payload })
-                .then(r => r.json())
-                .then(data => {
-                    alert(data.message);
-                    if (data.status === 'success') {
-                        document.getElementById('formPesanan').reset();
-                        document.querySelectorAll('.qty-input').forEach(i => i.value = 0);
-                        hitungSummaryPesanan();
+                const rows = document.querySelectorAll('.menu-row');
+                let arrayTeks = [];
+                let totalQty = 0;
+                rows.forEach(row => {
+                    const qty = parseInt(row.querySelector('.qty-input').value) || 0;
+                    if (qty > 0) {
+                        arrayTeks.push(`${row.getAttribute('data-nama')} (${qty} porsi)`);
+                        totalQty += qty;
                     }
-                })
-                .catch(() => alert('Terjadi kesalahan saat mengirim data ke server.'))
-                .finally(resetTombol);
-        });
+                });
+
+                if (arrayTeks.length === 0) {
+                    alert('Gagal mengirim! Silakan pilih minimal 1 item menu.');
+                    return;
+                }
+
+                const gabungan = arrayTeks.join(', ');
+
+                isSubmitting = true;
+                tombolKirim.disabled = true;
+                tombolKirim.innerText = 'Memproses...';
+
+                const konfirmasi = confirm(
+                    `Konfirmasi Pesanan Baru:\n\nPelanggan: ${namaInput}\nDaftar Order: ${gabungan}\n\nApakah rincian pesanan Linda Catering ini sudah sesuai dan ingin langsung dikirim?`
+                );
+
+                if (!konfirmasi) { resetTombol(); return; }
+
+                const payload = new FormData();
+                payload.append('nama', namaInput);
+                payload.append('item', gabungan);
+                payload.append('jumlah', totalQty);
+
+                fetch('/pesan', { method: 'POST', body: payload })
+                    .then(r => r.json())
+                    .then(data => {
+                        alert(data.message);
+                        if (data.status === 'success') {
+                            formPesanan.reset();
+                            document.querySelectorAll('.qty-input').forEach(i => i.value = 0);
+                            hitungSummaryPesanan();
+                        }
+                    })
+                    .catch(() => alert('Terjadi kesalahan saat mengirim data ke server.'))
+                    .finally(resetTombol);
+            });
+        }
     </script>
 </body>
 </html>
