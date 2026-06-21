@@ -8,16 +8,37 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         .qty-input {
-            width: 45px;
+            width: 38px;
             text-align: center;
             font-weight: bold;
             border: none;
             background: transparent;
+            padding: 0;
         }
         .qty-input::-webkit-outer-spin-button,
         .qty-input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
+        }
+        /* Tombol porsi rapat & konsisten ukurannya */
+        .qty-btn {
+            width: 30px;
+            height: 30px;
+            line-height: 1;
+            padding: 0;
+            flex: 0 0 auto;
+        }
+        /* Penyesuaian khusus layar HP biar tabel tidak overflow */
+        @media (max-width: 576px) {
+            .container { padding-left: 12px; padding-right: 12px; }
+            .table > :not(caption) > * > * {
+                padding-left: 6px;
+                padding-right: 6px;
+            }
+            .menu-nama { font-size: 0.9rem; }
+            .menu-harga { font-size: 0.85rem; white-space: nowrap; }
+            .qty-input { width: 30px; }
+            .qty-btn { width: 28px; height: 28px; }
         }
     </style>
 </head>
@@ -64,7 +85,7 @@
                         <tr>
                             <th>Nama Menu</th>
                             <th>Harga</th>
-                            <th class="text-center" style="width: 130px;">Porsi</th>
+                            <th class="text-center">Porsi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -75,13 +96,13 @@
                             </tr>
                                 {% for item in items %}
                                 <tr class="menu-row" data-nama="{{ item.nama }}" data-harga="{{ item.harga }}">
-                                    <td><strong>{{ item.nama }}</strong></td>
-                                    <td>Rp {{ "{:,}".format(item.harga) }}</td>
+                                    <td class="menu-nama"><strong>{{ item.nama }}</strong></td>
+                                    <td class="menu-harga">Rp {{ "{:,}".format(item.harga) }}</td>
                                     <td>
                                         <div class="d-flex align-items-center justify-content-center gap-1">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold px-2 py-0" onclick="ubahQty(this, -1)" {% if not warung_buka %}disabled{% endif %}>-</button>
-                                            <input type="number" class="qty-input mx-1" value="0" min="0" readonly>
-                                            <button type="button" class="btn btn-sm btn-success fw-bold px-2 py-0" onclick="ubahQty(this, 1)" {% if not warung_buka %}disabled{% endif %}>+</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold qty-btn" onclick="ubahQty(this, -1)" {% if not warung_buka %}disabled{% endif %}>-</button>
+                                            <input type="number" class="qty-input" value="0" min="0" readonly>
+                                            <button type="button" class="btn btn-sm btn-success fw-bold qty-btn" onclick="ubahQty(this, 1)" {% if not warung_buka %}disabled{% endif %}>+</button>
                                         </div>
                                     </td>
                                 </tr>
