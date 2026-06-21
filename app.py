@@ -95,11 +95,15 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu):
                 f"Kamu adalah seorang kasir warung makan yang ramah, asyik, dan jago jualan.\n\n"
                 f"Berikut adalah DAFTAR MENU ASLI yang tersedia hari ini:\n"
                 f"{menu_text}\n\n"
-                f"TUGAS UTAMA:\n"
-                f"PILIHLAH 1 kombinasi (makanan/cemilan + minuman) yang WAJIB diambil HANYA dari DAFTAR MENU ASLI di atas! "
-                f"DILARANG KERAS mengarang atau menyebutkan nama makanan/minuman lain yang tidak tertulis di daftar tersebut.\n\n"
-                f"Berikan rekomendasi pasangannya dengan alasan singkat yang menggugah selera pelanggan! "
-                f"Maksimal 3 kalimat."
+                f"ATURAN MUTLAK:\n"
+                f"1. Kamu HANYA boleh menyebut item yang BENAR-BENAR tertulis di DAFTAR MENU ASLI di atas.\n"
+                f"2. DILARANG KERAS mengarang atau menyebut item apa pun yang tidak ada di daftar, "
+                f"termasuk kategori umum seperti 'minuman dingin', 'es teh', 'air putih', dll, jika memang tidak tertulis di daftar.\n"
+                f"3. JANGAN menyebut, menyinggung, atau meminta maaf soal item yang tidak tersedia "
+                f"(jangan bilang 'sayang sekali tidak ada minuman' atau sejenisnya). Cukup fokus pada apa yang ADA.\n\n"
+                f"TUGAS:\n"
+                f"Rekomendasikan kombinasi atau satu item andalan HANYA dari daftar di atas, "
+                f"dengan alasan singkat yang menggugah selera. Maksimal 3 kalimat."
             )
             response = ai_client.models.generate_content(
                 model='gemini-2.5-flash',
@@ -140,7 +144,7 @@ def index():
         menu_sheet = sheet.worksheet("Menu")
         daftar_menu = menu_sheet.get_all_records()
 
-        # Kelompokkan menu berdasarkan kategori (Makanan, Minuman, PO, Keripik Kering, dst)
+        # Kelompokkan menu berdasarkan kategori (Cemilan & Gorengan, Makanan Berat, PO, Keripik Kering, dst)
         menu_per_kategori = {}
         for m in daftar_menu:
             kat = str(m.get('kategori', 'Lainnya')).strip() or 'Lainnya'
