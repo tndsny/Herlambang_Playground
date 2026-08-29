@@ -3,50 +3,176 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Menu - Linda Catering</title>
+  <title>Kelola Warung - Linda Catering</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 24px; }
-    table { border-collapse: collapse; margin-top: 16px; }
-    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
-    th { background: #f4f4f4; }
-    form.inline { margin: 0; }
-    .flash { background: #fffbdd; border: 1px solid #e6d47a; padding: 8px 12px; }
-    .tambah input, .tambah select { padding: 6px; margin-right: 6px; }
-    .nonaktif { color: #999; }
-    fieldset { max-width: 640px; }
-    textarea { font-family: inherit; padding: 6px; width: 100%; box-sizing: border-box; }
-    button { padding: 6px 12px; cursor: pointer; }
-    h1 { display: inline-block; margin-right: 16px; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 17px; line-height: 1.5;
+      margin: 0; padding: 16px; background: #f6f7f9; color: #1a1a1a;
+      max-width: 720px; margin-inline: auto;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    h2 { font-size: 18px; margin: 0 0 12px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .kartu { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    button {
+      font-size: 16px; font-family: inherit; min-height: 44px;
+      padding: 10px 16px; border-radius: 8px; border: 1px solid #ccc;
+      background: #fff; cursor: pointer;
+    }
+    button:active { transform: scale(.98); }
+    .utama { background: #0d6efd; border-color: #0d6efd; color: #fff; font-weight: 600; }
+    .bahaya { background: #dc3545; border-color: #dc3545; color: #fff; font-weight: 600; }
+    .sukses { background: #198754; border-color: #198754; color: #fff; font-weight: 600; }
+    .kecil { min-height: 38px; padding: 6px 12px; font-size: 15px; }
+    .status-besar { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .buka { color: #198754; }
+    .tutup { color: #dc3545; }
+    .flash { background: #fff3cd; border: 1px solid #ffe08a; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-weight: 600; }
+    input, select, textarea {
+      font-size: 16px; font-family: inherit; padding: 12px;
+      border: 1px solid #ccc; border-radius: 8px; width: 100%; margin-bottom: 10px;
+    }
+    .baris-menu {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 0; border-bottom: 1px solid #eee; flex-wrap: wrap;
+    }
+    .baris-menu:last-child { border-bottom: none; }
+    .info-menu { flex: 1 1 160px; min-width: 0; }
+    .nama-menu { font-weight: 600; }
+    .meta-menu { font-size: 14px; color: #666; }
+    .mati .nama-menu, .mati .meta-menu { color: #aaa; text-decoration: line-through; }
+    .label-mati { background: #eee; color: #666; font-size: 13px; padding: 2px 8px; border-radius: 999px; text-decoration: none; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; }
+    th { color: #666; font-size: 13px; text-transform: uppercase; }
+    details { margin-top: 4px; }
+    summary { cursor: pointer; font-weight: 600; color: #555; padding: 8px 0; }
+    .bantuan { font-size: 14px; color: #666; margin: -4px 0 12px; }
+    .navigasi { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
 
-<h1>Admin Menu</h1>
-<form class="inline" method="post" action="{{ url_for('logout') }}" style="display:inline">
-  <button type="submit">Logout</button>
-</form>
+<div class="topbar">
+  <h1>Kelola Warung</h1>
+  <form method="post" action="{{ url_for('logout') }}">
+    <button type="submit" class="kecil">Keluar</button>
+  </form>
+</div>
 
 {% with pesan = get_flashed_messages() %}
-  {% if pesan %}<p class="flash">{{ pesan|join(' · ') }}</p>{% endif %}
+  {% if pesan %}<div class="flash">{{ pesan|join(' · ') }}</div>{% endif %}
 {% endwith %}
 
-<h3>Pesanan Masuk</h3>
-<table id="tabelPesanan">
-  <thead>
-    <tr><th>#</th><th>Waktu</th><th>Pembeli</th><th>Item</th><th>Total</th></tr>
-  </thead>
-  <tbody><tr><td colspan="5">memuat...</td></tr></tbody>
-</table>
-<div style="margin-top:8px">
-  <button type="button" id="prevPesanan">&larr; Sebelumnya</button>
-  <span id="infoPesanan" style="margin:0 8px"></span>
-  <button type="button" id="nextPesanan">Berikutnya &rarr;</button>
+<div class="kartu">
+  <h2>Warung hari ini</h2>
+  {% if p.warung_buka %}
+    <div class="status-besar buka">Warung sedang BUKA</div>
+    <p class="bantuan">Pembeli bisa melihat menu dan mengirim pesanan.</p>
+    <form method="post" action="{{ url_for('admin_warung_toggle') }}"
+          onsubmit="return confirm('Tutup warung sekarang? Pembeli tidak bisa memesan lagi.')">
+      <button type="submit" class="bahaya">Tutup warung sekarang</button>
+    </form>
+  {% else %}
+    <div class="status-besar tutup">Warung sedang TUTUP</div>
+    <p class="bantuan">Pembeli melihat pesan tutup dan tidak bisa memesan.</p>
+    <form method="post" action="{{ url_for('admin_warung_toggle') }}">
+      <button type="submit" class="sukses">Buka warung sekarang</button>
+    </form>
+  {% endif %}
+</div>
+
+<div class="kartu">
+  <h2>Tambah menu baru</h2>
+  <form method="post" action="{{ url_for('admin_menu_tambah') }}">
+    <input name="nama" placeholder="Nama menu (contoh: Risol Mayo)" required>
+    <select name="kategori" required>
+      <option value="">Pilih kategori...</option>
+      {% for k in kategori %}
+      <option value="{{ k }}">{{ k }}</option>
+      {% endfor %}
+    </select>
+    <input name="harga" placeholder="Harga, angka saja (contoh: 4000)" inputmode="numeric" required>
+    <button type="submit" class="utama">Simpan menu baru</button>
+  </form>
+</div>
+
+<div class="kartu">
+  <h2>Daftar menu</h2>
+  <p class="bantuan">Menu yang disembunyikan tidak muncul di halaman pembeli. Panah mengatur urutan tampil.</p>
+  {% for m in items %}
+  <div class="baris-menu {{ '' if m.aktif else 'mati' }}">
+    <div class="info-menu">
+      <div class="nama-menu">{{ m.nama }}</div>
+      <div class="meta-menu">Rp {{ '{:,}'.format(m.harga).replace(',', '.') }} · {{ m.kategori or 'tanpa kategori' }}</div>
+    </div>
+    {% if not m.aktif %}<span class="label-mati">disembunyikan</span>{% endif %}
+    <form method="post" action="{{ url_for('admin_menu_pindah', menu_id=m.id, arah='naik') }}">
+      <button type="submit" class="kecil" title="Naikkan urutan">&uarr;</button>
+    </form>
+    <form method="post" action="{{ url_for('admin_menu_pindah', menu_id=m.id, arah='turun') }}">
+      <button type="submit" class="kecil" title="Turunkan urutan">&darr;</button>
+    </form>
+    <form method="post" action="{{ url_for('admin_menu_toggle', menu_id=m.id, field='aktif') }}">
+      {% if m.aktif %}
+      <button type="submit" class="kecil">Sembunyikan</button>
+      {% else %}
+      <button type="submit" class="kecil sukses">Tampilkan</button>
+      {% endif %}
+    </form>
+  </div>
+  {% else %}
+  <p>Belum ada menu. Tambahkan lewat kotak di atas.</p>
+  {% endfor %}
+</div>
+
+<div class="kartu">
+  <h2>Pesanan masuk</h2>
+  <table id="tabelPesanan">
+    <thead>
+      <tr><th>Waktu</th><th>Pembeli</th><th>Pesanan</th><th>Total</th></tr>
+    </thead>
+    <tbody><tr><td colspan="4">memuat...</td></tr></tbody>
+  </table>
+  <div class="navigasi">
+    <button type="button" id="prevPesanan" class="kecil">&larr; Sebelumnya</button>
+    <span id="infoPesanan"></span>
+    <button type="button" id="nextPesanan" class="kecil">Berikutnya &rarr;</button>
+  </div>
+</div>
+
+<div class="kartu">
+  <details>
+    <summary>Pengaturan lanjutan</summary>
+
+    <p class="bantuan" style="margin-top:12px">Pesan yang dilihat pembeli saat warung tutup.</p>
+    <form method="post" action="{{ url_for('admin_warung_pesan') }}">
+      <textarea name="pesan_tutup" rows="2">{{ p.pesan_tutup or '' }}</textarea>
+      <button type="submit" class="kecil">Simpan pesan tutup</button>
+    </form>
+
+    <p class="bantuan" style="margin-top:20px">
+      Instruksi untuk teks rekomendasi otomatis. Jangan hapus tulisan
+      <code>{menu}</code>, itu tempat daftar menu dimasukkan.
+    </p>
+    <form method="post" action="{{ url_for('admin_prompt_simpan') }}">
+      <textarea name="prompt_template" rows="8">{{ p.prompt_template or '' }}</textarea>
+      <button type="submit" class="kecil">Simpan instruksi</button>
+    </form>
+
+    <p class="bantuan" style="margin-top:20px">
+      Teks rekomendasi diperbarui otomatis setiap pagi. Tekan tombol ini kalau ingin diperbarui sekarang.
+    </p>
+    <form method="post" action="{{ url_for('admin_cache_refresh') }}">
+      <button type="submit" class="kecil">Perbarui teks rekomendasi</button>
+    </form>
+  </details>
 </div>
 
 <script>
   let halaman = 1;
-
-  function rupiah(n) { return n.toLocaleString('id-ID'); }
 
   function muatPesanan() {
     fetch('/admin/pesanan?page=' + halaman)
@@ -54,19 +180,18 @@
       .then(d => {
         const tbody = document.querySelector('#tabelPesanan tbody');
         if (!d.data.length) {
-          tbody.innerHTML = '<tr><td colspan="5">belum ada pesanan</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4">Belum ada pesanan.</td></tr>';
         } else {
           tbody.innerHTML = d.data.map(o => `<tr>
-            <td>${o.id}</td>
             <td>${o.waktu}</td>
             <td>${o.nama_pembeli}</td>
             <td>${o.ringkasan || '-'}</td>
-            <td>${rupiah(o.total)}</td>
+            <td>Rp ${o.total.toLocaleString('id-ID')}</td>
           </tr>`).join('');
         }
         halaman = d.page;
         document.getElementById('infoPesanan').innerText =
-          `Halaman ${d.page} dari ${d.total_page} (${d.total} pesanan)`;
+          `Halaman ${d.page} dari ${d.total_page} · ${d.total} pesanan`;
         document.getElementById('prevPesanan').disabled = d.page <= 1;
         document.getElementById('nextPesanan').disabled = d.page >= d.total_page;
       });
@@ -76,74 +201,6 @@
   document.getElementById('nextPesanan').onclick = () => { halaman++; muatPesanan(); };
   muatPesanan();
 </script>
-
-<fieldset style="margin-top:24px; margin-bottom:16px">
-  <legend>Status Warung</legend>
-  <form class="inline" method="post" action="{{ url_for('admin_warung_toggle') }}">
-    <button type="submit">{{ 'BUKA' if p.warung_buka else 'TUTUP' }}</button>
-  </form>
-  <form method="post" action="{{ url_for('admin_warung_pesan') }}" style="margin-top:8px">
-    <textarea name="pesan_tutup" rows="2">{{ p.pesan_tutup or '' }}</textarea>
-    <button type="submit">Simpan pesan</button>
-  </form>
-</fieldset>
-
-<fieldset style="margin-bottom:16px">
-  <legend>AI & Cache</legend>
-  <form method="post" action="{{ url_for('admin_prompt_simpan') }}">
-    <textarea name="prompt_template" rows="6">{{ p.prompt_template or '' }}</textarea>
-    <button type="submit">Simpan prompt</button>
-  </form>
-  <form class="inline" method="post" action="{{ url_for('admin_cache_refresh') }}" style="margin-top:8px">
-    <button type="submit">Refresh cache</button>
-  </form>
-</fieldset>
-
-<form class="tambah" method="post" action="{{ url_for('admin_menu_tambah') }}">
-  <input name="nama" placeholder="Nama menu" required>
-  <select name="kategori" required>
-    <option value="">-- Kategori --</option>
-    {% for k in kategori %}
-    <option value="{{ k }}">{{ k }}</option>
-    {% endfor %}
-  </select>
-  <input name="harga" placeholder="Harga" required>
-  <button type="submit">Tambah</button>
-</form>
-
-<table>
-  <tr>
-    <th>#</th><th>Nama</th><th>Kategori</th><th>Harga</th>
-    <th>Aktif</th><th>Urutan</th>
-  </tr>
-  {% for m in items %}
-  <tr class="{{ '' if m.aktif else 'nonaktif' }}">
-    <td>{{ m.id }}</td>
-    <td>{{ m.nama }}</td>
-    <td>{{ m.kategori or '-' }}</td>
-    <td>{{ '{:,}'.format(m.harga).replace(',', '.') }}</td>
-    <td>
-      <form class="inline" method="post"
-            action="{{ url_for('admin_menu_toggle', menu_id=m.id, field='aktif') }}">
-        <button type="submit">{{ 'aktif' if m.aktif else 'nonaktif' }}</button>
-      </form>
-    </td>
-    <td style="white-space:nowrap">
-      {{ m.urutan }}
-      <form class="inline" method="post" style="display:inline"
-            action="{{ url_for('admin_menu_pindah', menu_id=m.id, arah='naik') }}">
-        <button type="submit" title="Naikkan">&uarr;</button>
-      </form>
-      <form class="inline" method="post" style="display:inline"
-            action="{{ url_for('admin_menu_pindah', menu_id=m.id, arah='turun') }}">
-        <button type="submit" title="Turunkan">&darr;</button>
-      </form>
-    </td>
-  </tr>
-  {% else %}
-  <tr><td colspan="6">belum ada menu</td></tr>
-  {% endfor %}
-</table>
 
 </body>
 </html>
