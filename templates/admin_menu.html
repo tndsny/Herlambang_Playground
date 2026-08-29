@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Menu - Linda Catering</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; }
+    table { border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+    th { background: #f4f4f4; }
+    form.inline { margin: 0; }
+    .flash { background: #fffbdd; border: 1px solid #e6d47a; padding: 8px 12px; }
+    .tambah input, .tambah select { padding: 6px; margin-right: 6px; }
+    .nonaktif { color: #999; }
+    fieldset { max-width: 640px; }
+    textarea { font-family: inherit; padding: 6px; width: 100%; box-sizing: border-box; }
+    button { padding: 6px 12px; cursor: pointer; }
+    h1 { display: inline-block; margin-right: 16px; }
+  </style>
+</head>
+<body>
+
+<h1>Admin Menu</h1>
+<form class="inline" method="post" action="{{ url_for('logout') }}" style="display:inline">
+  <button type="submit">Logout</button>
+</form>
+
+{% with pesan = get_flashed_messages() %}
+  {% if pesan %}<p class="flash">{{ pesan|join(' · ') }}</p>{% endif %}
+{% endwith %}
+
+<h3>Pesanan Masuk (20 terakhir)</h3>
+<table>
+  <tr>
+    <th>#</th><th>Waktu</th><th>Pembeli</th><th>Item</th><th>Total</th>
+  </tr>
+  {% for o in pesanan %}
+  <tr>
+    <td>{{ o.id }}</td>
+    <td>{{ o.waktu_wib.strftime('%d/%m %H:%M') }}</td>
+    <td>{{ o.nama_pembeli }}</td>
+    <td>
+      {% for it in o.daftar_item %}{{ it.nama_menu }} ({{ it.qty }}x){% if not loop.last %}, {% endif %}{% endfor %}
+    </td>
+    <td>{{ '{:,}'.format(o.total).replace(',', '.') }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5">belum ada pesanan</td></tr>
+  {% endfor %}
+</table>
+
+<fieldset style="margin-top:24px; margin-bottom:16px">
+  <legend>Status Warung</legend>
+  <form class="inline" method="post" action="{{ url_for('admin_warung_toggle') }}">
+    <button type="submit">{{ 'BUKA' if p.warung_buka else 'TUTUP' }}</button>
+  </form>
+  <form method="post" action="{{ url_for('admin_warung_pesan') }}" style="margin-top:8px">
+    <textarea name="pesan_tutup" rows="2">{{ p.pesan_tutup or '' }}</textarea>
+    <button type="submit">Simpan pesan</button>
+  </form>
+</fieldset>
+
+<fieldset style="margin-bottom:16px">
+  <legend>AI & Cache</legend>
+  <form method="post" action="{{ url_for('admin_prompt_simpan') }}">
+    <textarea name="prompt_template" rows="6">{{ p.prompt_template or '' }}</textarea>
+    <button type="submit">Simpan prompt</button>
+  </form>
+  <form class="inline" method="post" action="{{ url_for('admin_cache_refresh') }}" style="margin-top:8px">
+    <button type="submit">Refresh cache</button>
+  </form>
+</fieldset>
+
+<form class="tambah" method="post" action="{{ url_for('admin_menu_tambah') }}">
+  <input name="nama" placeholder="Nama menu" required>
+  <select name="kategori" required>
+    <option value="">-- Kategori --</option>
+    {% for k in kategori %}
+    <option value="{{ k }}">{{ k }}</option>
+    {% endfor %}
+  </select>
+  <input name="harga" placeholder="Harga" required>
+  <button type="submit">Tambah</button>
+</form>
+
+<table>
+  <tr>
+    <th>#</th><th>Nama</th><th>Kategori</th><th>Harga</th>
+    <th>Aktif</th><th>Urutan</th>
+  </tr>
+  {% for m in items %}
+  <tr class="{{ '' if m.aktif else 'nonaktif' }}">
+    <td>{{ m.id }}</td>
+    <td>{{ m.nama }}</td>
+    <td>{{ m.kategori or '-' }}</td>
+    <td>{{ '{:,}'.format(m.harga).replace(',', '.') }}</td>
+    <td>
+      <form class="inline" method="post"
+            action="{{ url_for('admin_menu_toggle', menu_id=m.id, field='aktif') }}">
+        <button type="submit">{{ 'aktif' if m.aktif else 'nonaktif' }}</button>
+      </form>
+    </td>
+    <td style="white-space:nowrap">
+      {{ m.urutan }}
+      <form class="inline" method="post" style="display:inline"
+            action="{{ url_for('admin_menu_pindah', menu_id=m.id, arah='naik') }}">
+        <button type="submit" title="Naikkan">&uarr;</button>
+      </form>
+      <form class="inline" method="post" style="display:inline"
+            action="{{ url_for('admin_menu_pindah', menu_id=m.id, arah='turun') }}">
+        <button type="submit" title="Turunkan">&darr;</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6">belum ada menu</td></tr>
+  {% endfor %}
+</table>
+
+</body>
+</html>

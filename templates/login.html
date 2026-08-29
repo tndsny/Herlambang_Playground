@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="id">
+<head><meta charset="utf-8"><title>Login Admin</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 80px auto; max-width: 320px; }
+  input, button { width: 100%; padding: 8px; margin-top: 8px; box-sizing: border-box; }
+  .flash { background: #ffe0e0; border: 1px solid #e6a0a0; padding: 8px; }
+</style>
+</head>
+<body>
+<h2>Login Admin</h2>
+{% with pesan = get_flashed_messages() %}
+  {% if pesan %}<p class="flash">{{ pesan|join(' · ') }}</p>{% endif %}
+{% endwith %}
+<form method="post">
+  <input type="password" name="password" placeholder="Password" autofocus required>
+  <button type="submit">Masuk</button>
+</form>
+</body>
+</html>
