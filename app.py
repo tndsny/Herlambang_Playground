@@ -129,7 +129,7 @@ def dapatkan_rekomendasi_cache_atau_api(daftar_menu, prompt_template=None):
             )
             prompt = (prompt_template or PROMPT_DEFAULT).replace("{menu}", menu_text)
             response = ai_client.models.generate_content(
-                model='gemini-2.5-flash',
+                model='gemini-3.6-flash',
                 contents=prompt,
             )
             rekomendasi_teks = response.text
@@ -275,6 +275,40 @@ def logout():
 # ============================================================
 # ADMIN
 # ============================================================
+@app.get("/admin/pesanan")
+@butuh_login
+def admin_pesanan_json():
+    per_page = 10
+    page = max(1, int(request.args.get("page", 1)))
+    offset = (page - 1) * per_page
+
+    total = db.fetch_one("select count(*) as n from pesanan")["n"]
+    pesanan = db.fetch_all(
+        "select id, nama_pembeli, total,"
+        " to_char(created_at at time zone 'Asia/Jakarta', 'DD/MM HH24:MI') as waktu"
+        " from pesanan order by created_at desc limit %s offset %s",
+        (per_page, offset),
+    )
+
+    if pesanan:
+        rows = db.fetch_all(
+            "select pesanan_id, nama_menu, qty from pesanan_item"
+            " where pesanan_id = any(%s) order by id",
+            ([p["id"] for p in pesanan],),
+        )
+        per_pesanan = {}
+        for r in rows:
+            per_pesanan.setdefault(r["pesanan_id"], []).append(f"{r['nama_menu']} ({r['qty']}x)")
+        for p in pesanan:
+            p["ringkasan"] = ", ".join(per_pesanan.get(p["id"], []))
+
+    return jsonify({
+        "data": pesanan,
+        "page": page,
+        "total": total,
+        "total_page": max(1, -(-total // per_page)),
+    })
+
 @app.route("/admin")
 @butuh_login
 def admin_menu():
@@ -284,7 +318,7 @@ def admin_menu():
         items=items,
         kategori=KATEGORI,
         p=get_pengaturan(),
-        pesanan=ambil_pesanan_terakhir(),
+        # pesanan=ambil_pesanan_terakhir(),
     )
 
 

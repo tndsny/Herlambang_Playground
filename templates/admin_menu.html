@@ -30,25 +30,52 @@
   {% if pesan %}<p class="flash">{{ pesan|join(' · ') }}</p>{% endif %}
 {% endwith %}
 
-<h3>Pesanan Masuk (20 terakhir)</h3>
-<table>
-  <tr>
-    <th>#</th><th>Waktu</th><th>Pembeli</th><th>Item</th><th>Total</th>
-  </tr>
-  {% for o in pesanan %}
-  <tr>
-    <td>{{ o.id }}</td>
-    <td>{{ o.waktu_wib.strftime('%d/%m %H:%M') }}</td>
-    <td>{{ o.nama_pembeli }}</td>
-    <td>
-      {% for it in o.daftar_item %}{{ it.nama_menu }} ({{ it.qty }}x){% if not loop.last %}, {% endif %}{% endfor %}
-    </td>
-    <td>{{ '{:,}'.format(o.total).replace(',', '.') }}</td>
-  </tr>
-  {% else %}
-  <tr><td colspan="5">belum ada pesanan</td></tr>
-  {% endfor %}
+<h3>Pesanan Masuk</h3>
+<table id="tabelPesanan">
+  <thead>
+    <tr><th>#</th><th>Waktu</th><th>Pembeli</th><th>Item</th><th>Total</th></tr>
+  </thead>
+  <tbody><tr><td colspan="5">memuat...</td></tr></tbody>
 </table>
+<div style="margin-top:8px">
+  <button type="button" id="prevPesanan">&larr; Sebelumnya</button>
+  <span id="infoPesanan" style="margin:0 8px"></span>
+  <button type="button" id="nextPesanan">Berikutnya &rarr;</button>
+</div>
+
+<script>
+  let halaman = 1;
+
+  function rupiah(n) { return n.toLocaleString('id-ID'); }
+
+  function muatPesanan() {
+    fetch('/admin/pesanan?page=' + halaman)
+      .then(r => r.json())
+      .then(d => {
+        const tbody = document.querySelector('#tabelPesanan tbody');
+        if (!d.data.length) {
+          tbody.innerHTML = '<tr><td colspan="5">belum ada pesanan</td></tr>';
+        } else {
+          tbody.innerHTML = d.data.map(o => `<tr>
+            <td>${o.id}</td>
+            <td>${o.waktu}</td>
+            <td>${o.nama_pembeli}</td>
+            <td>${o.ringkasan || '-'}</td>
+            <td>${rupiah(o.total)}</td>
+          </tr>`).join('');
+        }
+        halaman = d.page;
+        document.getElementById('infoPesanan').innerText =
+          `Halaman ${d.page} dari ${d.total_page} (${d.total} pesanan)`;
+        document.getElementById('prevPesanan').disabled = d.page <= 1;
+        document.getElementById('nextPesanan').disabled = d.page >= d.total_page;
+      });
+  }
+
+  document.getElementById('prevPesanan').onclick = () => { halaman--; muatPesanan(); };
+  document.getElementById('nextPesanan').onclick = () => { halaman++; muatPesanan(); };
+  muatPesanan();
+</script>
 
 <fieldset style="margin-top:24px; margin-bottom:16px">
   <legend>Status Warung</legend>
