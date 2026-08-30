@@ -326,27 +326,73 @@ def admin_menu():
 @butuh_login
 def admin_menu_tambah():
     nama = request.form.get("nama", "").strip()
-    kategori = request.form.get("kategori") or None
-    harga = int(request.form.get("harga", "").replace(".", "").replace(",", "") or 0)
+    kategori = (request.form.get("kategori") or "").strip()
+    harga_raw = (request.form.get("harga") or "").strip()
 
     if not nama:
         flash("Nama menu wajib diisi")
         return redirect(url_for("admin_menu"))
+    if len(nama) > 60:
+        flash("Nama menu maksimal 60 karakter")
+        return redirect(url_for("admin_menu"))
 
-    if kategori and kategori not in KATEGORI:
+    if not kategori:
+        flash("Kategori wajib dipilih")
+        return redirect(url_for("admin_menu"))
+    if kategori not in KATEGORI:
         flash("Kategori tidak valid")
         return redirect(url_for("admin_menu"))
 
-    urutan = db.fetch_one("select coalesce(max(urutan), 0) + 1 as n from menu")["n"]
+    if not harga_raw:
+        flash("Harga wajib diisi")
+        return redirect(url_for("admin_menu"))
 
+    harga_bersih = harga_raw.replace(".", "").replace(",", "").replace(" ", "")
+    if not harga_bersih.isdigit():
+        flash("Harga harus berupa angka, contoh: 4000")
+        return redirect(url_for("admin_menu"))
+
+    harga = int(harga_bersih)
+    if harga <= 0:
+        flash("Harga harus lebih besar dari 0")
+        return redirect(url_for("admin_menu"))
+
+    sudah_ada = db.fetch_one("select id from menu where lower(nama) = lower(%s)", (nama,))
+    if sudah_ada:
+        flash(f"Menu '{nama}' sudah ada di daftar")
+        return redirect(url_for("admin_menu"))
+
+    urutan = db.fetch_one("select coalesce(max(urutan), 0) + 1 as n from menu")["n"]
     db.execute(
         "insert into menu (nama, kategori, harga, is_default, aktif, habis, urutan)"
-        " values (%s, %s, %s, false, true, false, %s)",
+        " values (%s, %s, %s, false, false, false, %s)",
         (nama, kategori, harga, urutan),
     )
-    flash(f"Menu '{nama}' ditambahkan")
+    flash(f"Menu '{nama}' ditambahkan (masih disembunyikan)")
     return redirect(url_for("admin_menu"))
 
+@app.post("/admin/menu/aktif")
+@butuh_login
+def admin_menu_aktif_massal():
+    semua = db.fetch_all("select id, aktif from menu")
+
+    jadi_aktif, jadi_mati = [], []
+    for m in semua:
+        pilihan = request.form.get(f"aktif_{m['id']}")
+        if pilihan is None:
+            continue
+        mau_aktif = (pilihan == "1")
+        if mau_aktif != m["aktif"]:
+            (jadi_aktif if mau_aktif else jadi_mati).append(m["id"])
+
+    if jadi_aktif:
+        db.execute("update menu set aktif = true where id = any(%s)", (jadi_aktif,))
+    if jadi_mati:
+        db.execute("update menu set aktif = false where id = any(%s)", (jadi_mati,))
+
+    total = len(jadi_aktif) + len(jadi_mati)
+    flash(f"{total} menu diperbarui" if total else "Tidak ada perubahan")
+    return redirect(url_for("admin_menu"))
 
 @app.post("/admin/menu/<int:menu_id>/toggle/<field>")
 @butuh_login

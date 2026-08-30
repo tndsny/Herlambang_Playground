@@ -51,6 +51,18 @@
     summary { cursor: pointer; font-weight: 600; color: #555; padding: 8px 0; }
     .bantuan { font-size: 14px; color: #666; margin: -4px 0 12px; }
     .navigasi { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    input[type="radio"] { width: auto; margin: 0 6px 0 0; padding: 0; }
+    .pilih-aktif { display: flex; gap: 14px; flex: 0 0 auto; }
+    .pilih-aktif label { display: flex; align-items: center; font-size: 15px; cursor: pointer; white-space: nowrap; }
+    .aksi-urutan { display: flex; gap: 6px; flex: 0 0 auto; }
+    .bar-simpan { position: sticky; bottom: 0; background: #fff; padding: 12px 0 4px; }
+    .bar-simpan button { width: 100%; }
+
+    @media (max-width: 480px) {
+      .baris-menu { align-items: flex-start; }
+      .info-menu { flex: 1 1 100%; }
+    }
+
   </style>
 </head>
 <body>
@@ -101,31 +113,34 @@
 
 <div class="kartu">
   <h2>Daftar menu</h2>
-  <p class="bantuan">Menu yang disembunyikan tidak muncul di halaman pembeli. Panah mengatur urutan tampil.</p>
-  {% for m in items %}
-  <div class="baris-menu {{ '' if m.aktif else 'mati' }}">
-    <div class="info-menu">
-      <div class="nama-menu">{{ m.nama }}</div>
-      <div class="meta-menu">Rp {{ '{:,}'.format(m.harga).replace(',', '.') }} · {{ m.kategori or 'tanpa kategori' }}</div>
+  <p class="bantuan">Pilih Tampil / Sembunyi sebanyak yang kamu mau, lalu tekan Update sekali di bawah.</p>
+  <form method="post" action="{{ url_for('admin_menu_aktif_massal') }}">
+    {% for m in items %}
+    <div class="baris-menu {{ '' if m.aktif else 'mati' }}">
+      <div class="info-menu">
+        <div class="nama-menu">{{ m.nama }}</div>
+        <div class="meta-menu">Rp {{ '{:,}'.format(m.harga).replace(',', '.') }} · {{ m.kategori or 'tanpa kategori' }}</div>
+      </div>
+      <div class="pilih-aktif">
+        <label><input type="radio" name="aktif_{{ m.id }}" value="1" {% if m.aktif %}checked{% endif %}> Tampil</label>
+        <label><input type="radio" name="aktif_{{ m.id }}" value="0" {% if not m.aktif %}checked{% endif %}> Sembunyi</label>
+      </div>
+      <div class="aksi-urutan">
+        <button type="submit" class="kecil" title="Naikkan urutan"
+                formaction="{{ url_for('admin_menu_pindah', menu_id=m.id, arah='naik') }}">&uarr;</button>
+        <button type="submit" class="kecil" title="Turunkan urutan"
+                formaction="{{ url_for('admin_menu_pindah', menu_id=m.id, arah='turun') }}">&darr;</button>
+      </div>
     </div>
-    {% if not m.aktif %}<span class="label-mati">disembunyikan</span>{% endif %}
-    <form method="post" action="{{ url_for('admin_menu_pindah', menu_id=m.id, arah='naik') }}">
-      <button type="submit" class="kecil" title="Naikkan urutan">&uarr;</button>
-    </form>
-    <form method="post" action="{{ url_for('admin_menu_pindah', menu_id=m.id, arah='turun') }}">
-      <button type="submit" class="kecil" title="Turunkan urutan">&darr;</button>
-    </form>
-    <form method="post" action="{{ url_for('admin_menu_toggle', menu_id=m.id, field='aktif') }}">
-      {% if m.aktif %}
-      <button type="submit" class="kecil">Sembunyikan</button>
-      {% else %}
-      <button type="submit" class="kecil sukses">Tampilkan</button>
-      {% endif %}
-    </form>
-  </div>
-  {% else %}
-  <p>Belum ada menu. Tambahkan lewat kotak di atas.</p>
-  {% endfor %}
+    {% else %}
+    <p>Belum ada menu. Tambahkan lewat kotak di atas.</p>
+    {% endfor %}
+    {% if items %}
+    <div class="bar-simpan">
+      <button type="submit" class="utama">Update tampil / sembunyi</button>
+    </div>
+    {% endif %}
+  </form>
 </div>
 
 <div class="kartu">
