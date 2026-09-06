@@ -160,7 +160,9 @@ def index():
         warung_buka = bool(p["warung_buka"])
 
         daftar_menu = db.fetch_all(
-            "select * from menu where aktif = true order by urutan, nama"
+            "select * from menu"
+            " where aktif = true and coalesce(habis, false) = false"
+            " order by urutan, nama"
         )
 
         menu_per_kategori = {}
@@ -208,20 +210,27 @@ def simpan_pesanan():
         ids = [int(i["menu_id"]) for i in items]
         rows = db.fetch_all(
             "select id, nama, harga from menu"
-            " where id = any(%s) and aktif = true and habis = false",
+            " where id = any(%s) and aktif = true and coalesce(habis, false) = false",
             (ids,),
         )
         tersedia = {r["id"]: r for r in rows}
+
+        gagal = [mid for mid in ids if mid not in tersedia]
+        if gagal:
+            nama_rows = db.fetch_all("select id, nama from menu where id = any(%s)", (gagal,))
+            nama_map = {r["id"]: r["nama"] for r in nama_rows}
+            daftar = ", ".join(nama_map.get(mid, f"menu #{mid}") for mid in gagal)
+            return jsonify({
+                "status": "error",
+                "message": f"Menu ini sudah tidak tersedia: {daftar}. Silakan refresh halaman."
+            })
 
         baris = []
         total = 0
         for i in items:
             mid, qty = int(i["menu_id"]), int(i["qty"])
-            if qty < 1 or mid not in tersedia:
-                return jsonify({
-                    "status": "error",
-                    "message": "Ada item yang sudah tidak tersedia. Silakan refresh halaman."
-                })
+            if qty < 1:
+                return jsonify({"status": "error", "message": "Jumlah porsi tidak valid."})
             m = tersedia[mid]
             total += m["harga"] * qty
             baris.append((mid, m["nama"], qty, m["harga"]))
